@@ -1,55 +1,20 @@
-const express = require('express')
-const Web3 = require('web3')
+console.log("bbpki application started and running...")
 
+// application modules
+const express = require('express')
+const fs = require('fs')
+const db = require('./dbconfig/db')
+const domainOwner = require('./models/domainOwner')
+const ra = require('./models/ra')
+const Web3 = require('web3')
+const { generateKeyPair } = require('crypto');
+const server = express()
+
+// developement/production enviroment variables
 const RPC_URL = "http://127.0.0.1:7545"
+const contract = JSON.parse(fs.readFileSync("build/contracts/BlockSSL.json"));
 const web3 = new Web3(RPC_URL)
-const abi = [
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "last_completed_migration",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "completed",
-        "type": "uint256"
-      }
-    ],
-    "name": "setCompleted",
-    "outputs": [],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "function"
-  }
-]
+const abi = contract.abi;
 var pbkey;
 var prkey;
 const address = "0x909E12782D907E7D897Fea37b8c86c3A3DE8Bc50"
@@ -60,7 +25,7 @@ const setCertificate =  BlockSSLcontract.methods.setCertificate(hh, "pbkey", 050
 
 console.log('sssssssssssss', setCertificate)
 
-const { generateKeyPair } = require('crypto');
+// public/private key pair generation function
 generateKeyPair('rsa', {
   modulusLength: 4096,
   publicKeyEncoding: {
@@ -79,3 +44,25 @@ generateKeyPair('rsa', {
   pbkey = publicKey
   prkey = privateKey
 }); 
+
+// application routes
+
+/* RA verify the domain owner, saves the domain owner in its database
+ creates a transaction and forwards CIR to CA's on the blockchain for 
+ cerificate signing and inclusion of the transaction on the ethereum blockchain */
+server.post('/verify-domain-owner', async (req, res)=>{
+
+})
+
+
+// starting developement/production server
+server.listen(process.env.PORT || 3000, (err)=>{
+  if (err){
+    console.log(error)
+  }
+  else {
+    console.log("bbpki server is listening at port 3000...")
+  }
+})
+
+
