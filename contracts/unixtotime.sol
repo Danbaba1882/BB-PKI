@@ -1,5 +1,7 @@
 pragma solidity ^0.8.3;
 
+pragma experimental ABIEncoderV2;
+
 // ----------------------------------------------------------------------------
 // BokkyPooBah's DateTime Library v1.01
 //
