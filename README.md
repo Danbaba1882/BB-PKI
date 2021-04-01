@@ -8,7 +8,7 @@ BB-PKI is a certificate  management  system  that  addresses  the  security vuln
 
 In this repository we implement a prototype of BB-PKI. The general architecture of BB-PKI is depicted in the below Figure.
 
-![General Framework of BB-PKI](Figs/BB-PKI.png)
+![General Framework of BB-PKI](Figs/BBPKI.jpg)
 
 ### Prerequisites
 
