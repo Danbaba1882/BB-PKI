@@ -12,13 +12,35 @@ const server = express()
 
 // developement/production enviroment variables
 const RPC_URL = "https://ropsten.infura.io/v3/eb33af9e6ec64536b4a5f12b2df87cb6"
-const contract = JSON.parse(fs.readFileSync("build/contracts/BlockSSL.json"));
+const contract = JSON.parse(fs.readFileSync("build/contracts/BBPKI.json"));
 const web3 = new Web3(RPC_URL)
 const abi = contract.abi;
 var pbkey;
 var prkey;
 const address = "0x792D2DBa14b0cEFb07FE9214dE413139027FB8A4"
 const BlockSSLcontract = new web3.eth.Contract(abi, address)
+
+// routes 
+server.get('/register-CA', async (req,res)=>{
+// server-side register CA function call
+registerCA();
+})
+
+server.get('/sign-certificate', async (req,res)=>{
+  signCertificate();
+})
+
+server.get('/revoke-certificate', async (req,res)=>{
+  revokeCertificate();
+})
+
+server.get('/get-certificate', async (req,res)=>{
+  getCertificate();
+})
+
+server.get('/client-verify-cert', async (req,res)=>{
+  clientVerifyCert();
+})
 
 // contract functions
 // sign certificate
@@ -40,7 +62,7 @@ async function signCertificate(){
   console.log('sssssssssssss', setCertificate)
 }
 
-signCertificate();
+
 
 // register CA
 async function registerCA(){
@@ -54,15 +76,20 @@ async function registerCA(){
       value:0,
   
   
-  }, function(error, data){
-    console.log(error);
-    console.log(data)
+  }, function(err, data){
+    if (err){
+      res.send({errror: err})
+    }
+
+    else {
+      res.send({data: data})
+    }
+    
   });
   console.log('sssssssssssss', setCertificate)
 }
 
-// server-side register CA function call
-registerCA();
+
 
 // revoke certificate
 async function revokeCertificate(){
@@ -82,19 +109,17 @@ async function revokeCertificate(){
   console.log('sssssssssssss', setCertificate)
 }
 
-revokeCertificate();
-
 //get certificate
 async function  getCertificate() {
   const certificate = await BlockSSLcontract.methods.certificates(_serialNumber).call()
   console.log(certificate)
 }
 
-getCertificate();
+
 
 // client verify certificate
 async function clientVerifyCert() {
-const certificate = await BlockSSLcontract.methods.certificates(_serialNumber).call((err, result)=>{
+const certificate = await BlockSSLcontract.methods.certificates(_serialNumber).call( async (err, result)=>{
 console.log(result)
 const blockNumber = result.blockNumber;
 const transaction = await web3.eth.getBlock(blockNumber);
@@ -106,7 +131,6 @@ else {
 }
   })
 }
-clientVerifyCert();
 
 // public/private key pair generation function
 generateKeyPair('rsa', {

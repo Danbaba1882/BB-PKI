@@ -17,6 +17,7 @@
     "express": "^4.17.1",
     "isomorphic-rpc": "^1.2.1",
     "mongoose": "^5.12.2",
+    "nodemon": "^2.0.7",
     "web3": "^1.3.4"
   }
 }
