@@ -1,5 +1,5 @@
-const BlockSSL = artifacts.require("BlockSSL");
+const BBPKI = artifacts.require("BBPKI");
 
 module.exports = function (deployer) {
-  deployer.deploy(BlockSSL);
+  deployer.deploy(BBPKI);
 };
