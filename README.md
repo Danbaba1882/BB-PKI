@@ -12,7 +12,7 @@ In this repository we implement a prototype of BB-PKI. The general architecture 
 
 ### Prerequisites
 
-In order to deploy the BB-PKI, to add and revoke the certificate in the blockchain require to setup testnet in Ethereum network. 
+In order to deploy the BB-PKI, to add and revoke the certificate in the blockchain require to setup testnet Ethereum Virtual private network. 
 
 ### Installing
 
