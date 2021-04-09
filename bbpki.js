@@ -3,15 +3,24 @@ console.log("bbpki application started and running...")
 // application modules
 const express = require('express')
 const fs = require('fs')
+const moment = require('moment')
+const bodyparser = require('body-parser')
+const path = require('path')
+const server = express()
 //const db = require('./dbconfig/db')
 //const domainOwner = require('./models/domainOwner')
 //const ra = require('./models/ra')
 const Web3 = require('web3')
 const { generateKeyPair } = require('crypto');
-const ethProof = ("eth-proof")
+const { GetAndVerify, GetProof, VerifyProof } = require('eth-proof')
+let getAndVerify = new GetAndVerify("https://mainnet.infura.io")
 var cas = JSON.parse(fs.readFileSync("cas.json"))
 var casArray = cas.cas;
-const server = express()
+server.set('view engine', 'ejs');
+server.use(bodyparser.json());
+server.use(express.static(path.resolve(__dirname+'/')));
+server.use(bodyparser.urlencoded({extended: true}));
+
 
 // developement/production enviroment variables
 const RPC_URL = "https://ropsten.infura.io/v3/eb33af9e6ec64536b4a5f12b2df87cb6"
@@ -20,81 +29,40 @@ const web3 = new Web3(RPC_URL)
 const abi = contract.abi;
 var pbkey;
 var prkey;
-const address = "0x792D2DBa14b0cEFb07FE9214dE413139027FB8A4"
+const address = "0x9085EaFA70ae65e6292aeFd7a1BFF27717734Cc3"
 const BlockSSLcontract = new web3.eth.Contract(abi, address)
 //import {init, SecretKey, secretKeyToPublicKey, sign, verify} from "@chainsafe/bls";
 const bls = require('noble-bls12-381');
+const { version } = require('moment')
 
 // You can use Uint8Array, or hex string for readability
 const privateKey = '67d53f170b908cabb9eb326c3c337762d59289a8fec79f7bc9254b584b73265c';
-/*const privateKeys = [
-  '18f020b98eb798752a50ed0563b079c125b0db5dd0b1060d1c1b47d4a193e1e4',
-  'ed69a8c50cf8c9836be3b67c7eeff416612d45ba39a5c099d48fa668bf558c9c',
-  '16ae669f3be7a2121e17d0c68c05a8f3d6bef21ec0f2315f1d7aec12484e4cf5'
-]; */
-//const message = '64726e3das';
-//const messages = ['d2', '0d98', '05caf3'];
-
-async function certBLSmultisignature () {
-  const publicKey = bls.getPublicKey(privateKey);
-  const publicKeys = privateKeys.map(bls.getPublicKey);
-
-  const signature = await bls.sign(message, privateKey);
-  const isCorrect = await bls.verify(signature, message, publicKey);
-  console.log('key', publicKey);
-  console.log('signature', signature);
-  console.log('is correct:', isCorrect);
-
-  // Sign 1 msg with 3 keys
-  const signatures2 = await Promise.all(privateKeys.map(p => bls.sign(message, p)));
-  const aggPubKey2 = bls.aggregatePublicKeys(publicKeys);
-  const aggSignature2 = bls.aggregateSignatures(signatures2);
-  const isCorrect2 = await bls.verify(aggSignature2, message, aggPubKey2);
-  console.log();
-  console.log('signatures are', signatures2);
-  console.log('merged to one signature', aggSignature2);
-  console.log('is correct:', isCorrect2);
-
-  // Sign 3 msgs with 3 keys
-  const signatures3 = await Promise.all(privateKeys.map((p, i) => bls.sign(messages[i], p)));
-  const aggSignature3 = bls.aggregateSignatures(signatures3);
-  const isCorrect3 = await bls.verifyBatch(aggSignature3, messages, publicKeys);
-  console.log();
-  console.log('keys', publicKeys);
-  console.log('signatures', signatures3);
-  console.log('merged to one signature', aggSignature3);
-  console.log('is correct:', isCorrect3);
-}
 
 
-// routes 
-server.get('/register-CA', async (req,res)=>{
-// server-side register CA function call
-registerCA();
-})
-
-/*server.get('/sign-certificate', async (req,res)=>{
-  signCertificate();
-}) */
-
-server.get('/revoke-certificate', async (req,res)=>{
-  revokeCertificate();
-})
-
-server.get('/get-certificate', async (req,res)=>{
-  getCertificate();
-})
-
-server.get('/client-verify-cert', async (req,res)=>{
-  clientVerifyCert();
-})
-
-// contract functions
+/*var certificate = {
+  version: version,
+  SerialNumber: serialNumber,
+  SubjectName:  subjectName,
+  SubjectPublicKey: PublicKey,
+  Validity: pValidity,
+  issuer: issuer,
+  MultiSignatures: signatures2,
+  certificateSignature: aggSignature2,
+  sigVerify: isCorrect2,
+  certStatus: certStatus,
+  certBlockNUm: blockNumber
+} */
+var _serialNumber;
+var signatures2;
+var aggPubKey2;
+var aggSignature2;
+var isCorrect2;
 // sign certificate
-async function signCertificate(){
 // bls multi-signature system, You can use Uint8Array, or hex string for readability
+async function signCertificate(domain){
+
 const privateKey = '67d53f170b908cabb9eb326c3c337762d59289a8fec79f7bc9254b584b73265c';
-const domainName = "example.com"
+const domainName = domain;
 const domainHex = toHexString(domainName)
 const numCas = Math.random() * (11 - 3) + 3;
 const privateKeys = [];
@@ -106,7 +74,8 @@ const privateKeys = [];
     }
 const message = domainHex;
 
-(async () => {
+
+var as = (async () => {
   const publicKey = bls.getPublicKey(privateKey);
   const publicKeys = privateKeys.map(bls.getPublicKey);
 
@@ -115,25 +84,49 @@ const message = domainHex;
 
 
   // Sign certifictae with private keys of CA's
-  const signatures2 = await Promise.all(privateKeys.map(p => bls.sign(message, p)));
-  const aggPubKey2 = bls.aggregatePublicKeys(publicKeys);
-  const aggSignature2 = bls.aggregateSignatures(signatures2);
-  const isCorrect2 = await bls.verify(aggSignature2, message, aggPubKey2);
+  signatures2 = await Promise.all(privateKeys.map(p => bls.sign(message, p)));
+  aggPubKey2 = bls.aggregatePublicKeys(publicKeys);
+  aggSignature2 = bls.aggregateSignatures(signatures2);
+  isCorrect2 = await bls.verify(aggSignature2, message, aggPubKey2);
   console.log();
   console.log('multi/ partial signatures of selected CAs:', signatures2);
   console.log('merged/combined signature:', aggSignature2);
   console.log('signature verified ?:', isCorrect2);
 
+
+return [signatures2, aggPubKey2, aggSignature2, isCorrect2];
   // Sign 3 msgs with 3 keys
 })();
-  
+ 
+console.log(await as, signatures2)
+const currentts = Date.now();
+_serialNumber = currentts;
+const expiryts = parseInt(currentts) + (365*24*60*60);
+console.log(currentts,expiryts)
+const ex=  moment(expiryts).format('MM/DD/YYYY');
+console.log(ex)
+const iss  = parseInt(Math.random() * (numCas - 0) + 1);
+const issuer = casArray[iss].caName;
+
+// parameters
+const version = "X.509V3";
+const certStatus = true;
+const subjectname = "domainName";
+var multisigs = signatures2;
+const combsigs = aggSignature2;
+const expiry = expiryts;
+const issuerr = issuer;
+const publicKey = aggPubKey2;
+
+
+
   const pvtkey = "fab65123befae2ad210633b072c7862bf7b68e0c65900b86c85c736e4393bd13";
   web3.eth.accounts.wallet.add("0x"+pvtkey);
-  const setCertificate = await BlockSSLcontract.methods.signCertificate("testDomain").send({
+  const setCertificate = await BlockSSLcontract.methods.issueCertificate(version, currentts, subjectname, "JJJJ",expiry,issuerr,signatures2, combsigs, certStatus).send({
 
     'from': '0xf0f6D0d5D540F5E639C594bBc6c6f57d903A02bC',
     'gas':1000000,
-      value:0,
+    value:0,
   
   
   }, function(error, data){
@@ -143,7 +136,7 @@ const message = domainHex;
   console.log('sssssssssssss', setCertificate)
 }
 
-signCertificate();
+
 
 function toHexString(byteArray) {
   return Array.from(byteArray, function(byte) {
@@ -211,6 +204,8 @@ console.log(result)
 const blockNumber = result.blockNumber;
 const transaction = await web3.eth.getBlock(blockNumber);
 if (transaction) {
+const getnverify = new GetAndVerify(RPC_URL);
+const proof = getnverify.txAgainstBlockHash(txHash, trustedBlockHash);
   return true;
 }
 else {
@@ -244,6 +239,37 @@ generateKeyPair('rsa', {
 /* RA verify the domain owner, saves the domain owner in its database
  creates a transaction and forwards CIR to CA's on the blockchain for 
  cerificate signing and inclusion of the transaction on the ethereum blockchain */
+
+ server.get('/', (req, res)=>{
+  res.send({message: "Welcome Dr Abba Garba, use the url bbpki.herokuapp.com/signCertificate/<domainName> to sign the sertificate using the bls multisignature system, the signatures are responded back in a json format in your browser interface"})
+  })
+  // routes 
+  server.get('/register-CA', async (req,res)=>{
+  // server-side register CA function call
+  registerCA();
+  })
+  
+  server.get('/sign-certificate/:domainName', async (req,res)=>{
+    signCertificate(req.params.domainName);
+    res.json({
+      caMultisignature: signatures2,
+      combinedSignatures: aggSignature2,
+      signatureVerified: isCorrect2
+    })
+  })
+  
+  server.get('/revoke-certificate', async (req,res)=>{
+    revokeCertificate();
+  })
+  
+  server.get('/get-certificate', async (req,res)=>{
+    getCertificate();
+  })
+  
+  server.get('/client-verify-cert', async (req,res)=>{
+    clientVerifyCert();
+  })
+  
 
 
 

@@ -8,9 +8,7 @@ contract Bbpki {
 
 address owner;
 mapping (uint => certificate) public certificates;
-mapping (uint => certificateAuthority) public certificateAuthorities;
 uint256 public noOfcertificates = 0;
-uint256 public noOfCA = 0;
 
 // constructor
 constructor () public {
@@ -31,115 +29,298 @@ require (owner == msg.sender);
 // structures
 
     struct certificate {
+        string version;
         uint256 serialNumber;
         string subjectName;
+        string publicKey;
+        uint256 validity;
         string issuer;
-        uint notBefore;
-        uint notAfter;
-        certificateStatus Status;
-        string[] signatures;
+        string[] Multisignatures;
+        string  certificateSignature; 
+        bool  certificateStatus;
         uint256 blockNumber;
-    }
-
-    struct certificateAuthority {
-    uint id;
-    string nameCA;
     }
 
    
 
     // events
     // certificate authority registeration event
-    event caRegistered (uint noOfCA, string _name );
     event header (uint notBefore, uint notAfter, uint blockNumber);
 
     // certificate signing event
     event certificateSigned(
-    uint256 serialNumber,
-    string  subjectName,
-     string  issuer,
-     certificateStatus Status,
-     string[] signatures
+        string version,
+        uint256 serialNumber,
+        string subjectName,
+        string publicKey,
+        uint256 blockNumber
       );
-
-    // functions 
-    function registerCA (string memory _name) public {
-        require ((bytes(_name).length > 0));
-        require(noOfCA < 10);
-        noOfCA++;
-        uint256 CA_Id = noOfCA;
-        certificateAuthorities[CA_Id] = certificateAuthority(noOfCA, _name);
-        emit caRegistered (CA_Id, _name);
-    }
-
-
-    function signCertificate(string memory subjectName) public returns (
-     uint256 serialNumber,
-     string memory,
-     string memory issuer,
-     certificateStatus,
-     string[] memory
-     
-
-     ) {
-    serialNumber = block.timestamp/8;
-    noOfcertificates++;
-
-    // generate a random number between 3 and 10 inclusive to determine the number of CA to sign the certificate automatically
-    uint caRequired = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % 9;
-    if (caRequired <3){
-        caRequired = caRequired + 3;
-        }
+      
+      event addcertpropss(
         
-    for (uint i = 1; i < caRequired; i++)
-    {
-    certificates[serialNumber].signatures.push(certificateAuthorities[i].nameCA);
-    }
-  
-    // generate a random number between 1 and "caRequired" to select the issuer of the certificate
-    uint cIssuer = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % caRequired;
-    if (cIssuer < 1){
-        cIssuer = cIssuer + 1;
-        }
-    issuer = certificateAuthorities[cIssuer].nameCA;
-   
- //   (uint year,uint month,uint day) = BokkyPooBahsDateTimeLibrary.timestampToDate(a);
+        string issuer,
+        string[] Multisignatures,
+        string  certificateSignature, 
+        bool  certificateStatus,
+        uint256 validity
+      );
     
- certificateStatus Status = certificateStatus.active;
-certificates[serialNumber].serialNumber = serialNumber;
-certificates[serialNumber].subjectName = subjectName;
-certificates[serialNumber].issuer = issuer;
-certificates[serialNumber].Status = Status;
-addblockandexpiry(serialNumber);
+
+
+    function issueCertificate(
+        string memory _version,
+        uint256 _serialNumber,
+        string memory _subjectName,
+        string memory _publicKey,
+        uint256 _validity,
+        string memory _issuer,
+        string[] memory _Multisignatures,
+        string memory  _certificateSignature, 
+        bool  _certificateStatus
+    ) public returns (
+        string memory,
+        uint256 ,
+        string memory,
+        string memory,
+        uint256
+      
+     ) {
+    noOfcertificates++;
+certificates[_serialNumber].serialNumber = _serialNumber;
+certificates[_serialNumber].version = _version;
+certificates[_serialNumber].subjectName = _subjectName;
+certificates[_serialNumber].publicKey = _publicKey;
+certificates[_serialNumber].blockNumber = block.number;
+
+addcertprops( _serialNumber, _issuer, _Multisignatures, _certificateSignature, _certificateStatus, _validity); 
 
 
   //  certificates[noOfcertificates] = certificate(serialNumber, subjectName, organisation, issuer, expiry, noOfSignatures,defaultStatus,signatures);
-     emit certificateSigned(serialNumber, subjectName, issuer, Status,certificates[serialNumber].signatures);
-     return (serialNumber, subjectName, issuer, Status,certificates[serialNumber].signatures);
+     emit certificateSigned(
+        _version,
+        _serialNumber,
+        _subjectName,
+        _publicKey,
+        block.number);
+     return ( 
+         _version,
+        _serialNumber,
+        _subjectName,
+        _publicKey,
+        block.number
+        );
     }
 
-    function revokeCertificate (uint256 serialNumber) public returns (string memory){
-     certificateStatus status = certificateStatus.revoked;
-     certificates[serialNumber].Status = status;
-    return "revoked";
+    function addcertprops(
+        uint256 _serialNumber,
+        string memory _issuer,
+        string[] memory _Multisignatures,
+        string memory  _certificateSignature, 
+        bool  _certificateStatus,
+        uint256 _validity
+    ) public returns (
+        string memory,
+        string[] memory,
+        string memory, 
+        bool,
+        uint256
+      
+     ) {
+certificates[_serialNumber].issuer = _issuer;
+certificates[_serialNumber].certificateStatus = _certificateStatus;
+certificates[_serialNumber].Multisignatures = _Multisignatures;
+certificates[_serialNumber].certificateSignature = _certificateSignature;
+certificates[_serialNumber].validity = _validity;
+
+
+
+  //  certificates[noOfcertificates] = certificate(serialNumber, subjectName, organisation, issuer, expiry, noOfSignatures,defaultStatus,signatures);
+     emit addcertpropss(
+        _issuer,
+        _Multisignatures,
+        _certificateSignature, 
+        _certificateStatus,
+        _validity
+        );
+     return ( _issuer ,_Multisignatures, _certificateSignature,  _certificateStatus, _validity);
+    }
+
+
+    function revokeCertificate (uint256 _serialNumber) public returns (bool){
+     certificates[_serialNumber].certificateStatus = false;
+    return false;
     }
     
-    function clientVerifyCert(uint serialNumber) public view returns (uint){
-        return certificates[serialNumber].blockNumber;
+    function clientVerifyCert(uint _serialNumber) public view returns (uint){
+        return certificates[_serialNumber].blockNumber;
     }
 
     function countCertificates() view public returns (uint){ //Count how many users create certificates
       return noOfcertificates;
     }
     
-    function addblockandexpiry (uint256 serialNumber) private returns (uint256, uint256, uint256) {
-        uint256 notBefore = block.timestamp;
-        uint256 notAfter = block.timestamp + (365*24*60*60);
-        certificates[serialNumber].notBefore = notBefore;
-        certificates[serialNumber].notAfter = notAfter;
-        certificates[serialNumber].blockNumber = block.number;
-        emit header(notBefore, notAfter, block.number);
-        return (notBefore, notAfter, block.number);
-        
+    
+}
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.5.16;
+pragma experimental ABIEncoderV2;
+
+contract Bbpki {
+
+// state variables
+
+address owner;
+mapping (uint => certificate) public certificates;
+uint256 public noOfcertificates = 0;
+
+// constructor
+constructor () public {
+owner = msg.sender;
+}
+
+ // enumerations (predetermined values)
+    enum certificateStatus {active, revoked, expired}
+
+// access restrictions
+modifier onlyOwner (){
+require (owner == msg.sender);
+    _;
+}
+
+
+
+// structures
+
+    struct certificate {
+        string version;
+        uint256 serialNumber;
+        string subjectName;
+        string publicKey;
+        uint256 validity;
+        string issuer;
+        string[] Multisignatures;
+        string  certificateSignature; 
+        bool  certificateStatus;
+        uint256 blockNumber;
     }
+
+   
+
+    // events
+    // certificate authority registeration event
+    event header (uint notBefore, uint notAfter, uint blockNumber);
+
+    // certificate signing event
+    event certificateSigned(
+        string version,
+        uint256 serialNumber,
+        string subjectName,
+        string publicKey,
+        uint256 blockNumber
+      );
+      
+      event addcertpropss(
+        
+        string issuer,
+        string[] Multisignatures,
+        string  certificateSignature, 
+        bool  certificateStatus,
+        uint256 validity
+      );
+    
+
+
+    function issueCertificate(
+        string memory _version,
+        uint256 _serialNumber,
+        string memory _subjectName,
+        string memory _publicKey,
+        uint256 _validity,
+        string memory _issuer,
+        string[] memory _Multisignatures,
+        string memory  _certificateSignature, 
+        bool  _certificateStatus
+    ) public returns (
+        string memory,
+        uint256 ,
+        string memory,
+        string memory,
+        uint256
+      
+     ) {
+    noOfcertificates++;
+certificates[_serialNumber].serialNumber = _serialNumber;
+certificates[_serialNumber].version = _version;
+certificates[_serialNumber].subjectName = _subjectName;
+certificates[_serialNumber].publicKey = _publicKey;
+certificates[_serialNumber].blockNumber = block.number;
+
+addcertprops( _serialNumber, _issuer, _Multisignatures, _certificateSignature, _certificateStatus, _validity); 
+
+
+  //  certificates[noOfcertificates] = certificate(serialNumber, subjectName, organisation, issuer, expiry, noOfSignatures,defaultStatus,signatures);
+     emit certificateSigned(
+        _version,
+        _serialNumber,
+        _subjectName,
+        _publicKey,
+        block.number);
+     return ( 
+         _version,
+        _serialNumber,
+        _subjectName,
+        _publicKey,
+        block.number
+        );
+    }
+
+    function addcertprops(
+        uint256 _serialNumber,
+        string memory _issuer,
+        string[] memory _Multisignatures,
+        string memory  _certificateSignature, 
+        bool  _certificateStatus,
+        uint256 _validity
+    ) public returns (
+        string memory,
+        string[] memory,
+        string memory, 
+        bool,
+        uint256
+      
+     ) {
+certificates[_serialNumber].issuer = _issuer;
+certificates[_serialNumber].certificateStatus = _certificateStatus;
+certificates[_serialNumber].Multisignatures = _Multisignatures;
+certificates[_serialNumber].certificateSignature = _certificateSignature;
+certificates[_serialNumber].validity = _validity;
+
+
+
+  //  certificates[noOfcertificates] = certificate(serialNumber, subjectName, organisation, issuer, expiry, noOfSignatures,defaultStatus,signatures);
+     emit addcertpropss(
+        _issuer,
+        _Multisignatures,
+        _certificateSignature, 
+        _certificateStatus,
+        _validity
+        );
+     return ( _issuer ,_Multisignatures, _certificateSignature,  _certificateStatus, _validity);
+    }
+
+
+    function revokeCertificate (uint256 _serialNumber) public returns (bool){
+     certificates[_serialNumber].certificateStatus = false;
+    return false;
+    }
+    
+    function clientVerifyCert(uint _serialNumber) public view returns (uint){
+        return certificates[_serialNumber].blockNumber;
+    }
+
+    function countCertificates() view public returns (uint){ //Count how many users create certificates
+      return noOfcertificates;
+    }
+    
+    
 }
