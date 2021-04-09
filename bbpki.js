@@ -120,7 +120,7 @@ const publicKey = aggPubKey2;
 
 
 
-  const pvtkey = "fab65123befae2ad210633b072c7862bf7b68e0c65900b86c85c736e4393bd13";
+  const pvtkey = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
   web3.eth.accounts.wallet.add("0x"+pvtkey);
   const setCertificate = await BlockSSLcontract.methods.issueCertificate(version, currentts, subjectname, "JJJJ",expiry,issuerr,signatures2, combsigs, certStatus).send({
 
