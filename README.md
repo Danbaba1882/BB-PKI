@@ -18,25 +18,4 @@ In order to deploy the BB-PKI, to add and revoke the certificate in the blockcha
 
 A step by step series of examples that tell you how to get a development of the system running
 
-Steps 1: Generate x509 certificates and GPG certificates with Ethereum address
-
-X509 certificates:
-```
-# 1. Generate CA's key
-$ openssl genrsa -out ca.key 2048
-.
-.
-.
-.
-
-## Contributing
  
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
-
-
