@@ -22,18 +22,20 @@ server.use(bodyparser.urlencoded({extended: true}));
 
 
 // developement/production enviroment variables
+const rpcurl_ganache = "http://127.0.0.1:7545"
 const RPC_URL = "https://ropsten.infura.io/v3/eb33af9e6ec64536b4a5f12b2df87cb6"
 const contract = JSON.parse(fs.readFileSync("build/contracts/BBPKI.json"));
-const web3 = new Web3(RPC_URL)
+const web3 = new Web3(rpcurl_ganache)
 const abi = contract.abi;
 var pbkey;
 var prkey;
-const contractAddress = "0x9085EaFA70ae65e6292aeFd7a1BFF27717734Cc3"
+const contractAddress = "0x960c879Ee9d6381bD4f66C58d015ECB2fe5240DF"
 const BlockSSLcontract = new web3.eth.Contract(abi, contractAddress)
 const bls = require('noble-bls12-381');
 const { version } = require('moment')
 
 var certificate = {}
+var certArray = [];
 
 // global variables
 var _serialNumber;
@@ -71,7 +73,7 @@ var as = (async () => {
   aggPubKey2 = bls.aggregatePublicKeys(publicKeys);
   aggSignature2 = bls.aggregateSignatures(signatures2);
   isCorrect2 = await bls.verify(aggSignature2, message, aggPubKey2);
-  console.log();
+ 
   console.log('multi/ partial signatures of selected CAs:', signatures2);
   console.log('merged/combined signature:', aggSignature2);
   console.log('signature verified ?:', isCorrect2);
@@ -92,14 +94,29 @@ const certIssuer = casArray[issuer].caName;
 // setting certificate parameters
 const version = "X.509V3";
 const certStatus = true;
-const subjectname = "domainName";
+const subjectname = domainName;
 const multisigs = signatures2;
 const certSignature = aggSignature2;
 const expiry = expiryTime;
 const certIssuerr = certIssuer;
 const publicKey = aggPubKey2;
 
-certificate.version = version
+//issuing certificate on the ethereum blockchain and transaction inclusion (for proof of existence and cert status)
+const pvtkey = "f66bcf3a0ac7332895bd174a313402cbd03e2a07919bfed0a8bc29e275b9225c";
+web3.eth.accounts.wallet.add(pvtkey);
+const setCertificate = await BlockSSLcontract.methods.issueCertificate(version, currentTime, subjectname, "JJJJ",expiry,certIssuerr,multisigs, certSignature, certStatus).send({
+  'from': "0xA0dFEd341116881aCacf33767cD5C318852A48C3",
+  'gas':6721975,
+  value: 0
+  }, function(error, data){
+    if (error){
+      console.log(error);
+    }
+    console.log(data)
+  });
+  console.log('certInfo', setCertificate)
+  const blockNumber = setCertificate.events.certificateSigned.returnValues.blockNumber;
+  certificate.version = version
   certificate.SerialNumber = _serialNumber
   certificate.SubjectName = subjectname
   certificate.SubjectPublicKey = publicKey
@@ -109,26 +126,11 @@ certificate.version = version
   certificate.certificateSignature = aggSignature2
   certificate.sigVerify = isCorrect2
   certificate.certStatus = certStatus
- // certificate.certBlockNUm = blockNumber
-
+  certificate.certBlockNUm = blockNumber
+  certificate.txHash = setCertificate.transactionHash;
+  certificate.blockHash = setCertificate.blockHash
+  certArray.push(certificate);
   console.log(certificate);
-
-//issuing certificate on the ethereum blockchain and transaction inclusion (for proof of existence and cert status)
-const pvtkey = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-web3.eth.accounts.wallet.add(pvtkey);
- const add =  web3.eth.accounts.wallet[0].address;
-
-const setCertificate = await BlockSSLcontract.methods.issueCertificate(version, currentTime, subjectname, "JJJJ",expiry,certIssuerr,multisigs, certSignature, certStatus).send({
-  'from': add,
-  'gas':1000000,
-  value:0
-  }, function(error, data){
-    if (error){
-      console.log(error);
-    }
-    console.log(data)
-  });
-  console.log('certInfo', setCertificate)
 }
 
 // string to hex conversion function
@@ -216,16 +218,12 @@ generateKeyPair('rsa', {
   // certificate issuance and signing route
   server.get('/sign-certificate/:domainName', async (req,res)=>{
     signCertificate(req.params.domainName);
-    res.json({
-      caMultisignature: signatures2,
-      combinedSignatures: aggSignature2,
-      signatureVerified: isCorrect2
-    })
+    res.send(certificate)
   })
   
 // cert revokation route
-  server.get('/revoke-certificate', async (req,res)=>{
-    revokeCertificate();
+  server.get('/revoke-certificate/:serialnumber/:blocknumber', async (req,res)=>{
+    revokeCertificate(req.params.serialnumber, req.params.blocknumber);
   })
   
  // blockchain cert info route 
