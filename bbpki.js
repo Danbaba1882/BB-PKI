@@ -100,7 +100,6 @@ const certSignature = aggSignature2;
 const expiry = expiryTime;
 const certIssuerr = certIssuer;
 const publicKey = aggPubKey2;
-
 //issuing certificate on the ethereum blockchain and transaction inclusion (for proof of existence and cert status)
 const pvtkey = "f66bcf3a0ac7332895bd174a313402cbd03e2a07919bfed0a8bc29e275b9225c";
 web3.eth.accounts.wallet.add(pvtkey);
@@ -141,20 +140,18 @@ function toHexString(byteArray) {
 }
 
 // revoke certificate
-async function revokeCertificate(){
+async function revokeCertificate(_serialNumber){
   const pvtkey = "fab65123befae2ad210633b072c7862bf7b68e0c659xxxxxxxxxxxxxxxxxxxx"
-var rawTransaction = {
-  'from': '0x9085EaFA70ae65e6292aeFd7a1BFF27717734Cc3',
-  'gas':1000000,
-  value:0
-  }
-  var signedtx = web3.eth.accounts.signTransaction(rawTransaction, pvtkey)
-  const revokeCert = await BlockSSLcontract.methods.revokeCertificate(_serialNumber).send(signedtx, function(error, data){
-    if (error){
-      console.log(error);
-    }
-    console.log(data)
-  });
+  const revokeCert = await BlockSSLcontract.methods.revokeCertificate(_serialNumber).send({
+    'from': "0xA0dFEd341116881aCacf33767cD5C318852A48C3",
+    'gas':6721975,
+    value: 0
+    }, function(error, data){
+      if (error){
+        console.log(error);
+      }
+      console.log(data)
+    });
   console.log('certStatus', revokeCert)
   // setting certificate object
 
@@ -162,13 +159,13 @@ var rawTransaction = {
 }
 
 //get certificate
-async function  getCertificate() {
+async function  getCertificate(_serialNumber) {
   const certificate = await BlockSSLcontract.methods.certificates(_serialNumber).call()
   console.log(certificate)
 }
 
 // client verify certificate using the eth-proof
-async function clientVerifyCert() {
+async function clientVerifyCert(_serialNumber) {
 const certificate = await BlockSSLcontract.methods.certificates(_serialNumber).call( async (err, result)=>{
 console.log(result)
 const blockNumber = result.blockNumber;
@@ -222,18 +219,18 @@ generateKeyPair('rsa', {
   })
   
 // cert revokation route
-  server.get('/revoke-certificate/:serialnumber/:blocknumber', async (req,res)=>{
-    revokeCertificate(req.params.serialnumber, req.params.blocknumber);
+  server.get('/revoke-certificate/:serialnumber', async (req,res)=>{
+    revokeCertificate(req.params.serialnumber);
   })
   
  // blockchain cert info route 
-  server.get('/get-certificate', async (req,res)=>{
-    getCertificate();
+  server.get('/get-certificate/:serialnumber', async (req,res)=>{
+    getCertificate(req.params.serialnumber);
   })
   
   // client verify cert using eth-proof route
-  server.get('/client-verify-cert', async (req,res)=>{
-    clientVerifyCert();
+  server.get('/client-verify-cert/:serialNumber', async (req,res)=>{
+    clientVerifyCert(req.params.serialnumber);
   })
   
 // starting developement/production server
