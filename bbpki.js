@@ -218,9 +218,15 @@ generateKeyPair('rsa', {
     res.send(certificate)
   })
   
+<<<<<<< HEAD
 // cert revokation route
   server.get('/revoke-certificate/:serialnumber', async (req,res)=>{
     revokeCertificate(req.params.serialnumber);
+=======
+// cert revocation route
+  server.get('/revoke-certificate/:serialnumber/:blocknumber', async (req,res)=>{
+    revokeCertificate(req.params.serialnumber, req.params.blocknumber);
+>>>>>>> aa07b645cd95aee748fb0a328e3110c4075c733e
   })
   
  // blockchain cert info route 
