@@ -29,7 +29,7 @@ const web3 = new Web3(rpcurl_ganache)
 const abi = contract.abi;
 var pbkey;
 var prkey;
-const contractAddress = "0x960c879Ee9d6381bD4f66C58d015ECB2fe5240DF"
+const contractAddress = "0x0af2A769c36481aceF0Af422f60c30d34b5Be3d9"
 const BlockSSLcontract = new web3.eth.Contract(abi, contractAddress)
 const bls = require('noble-bls12-381');
 const { version } = require('moment')
@@ -101,17 +101,17 @@ const expiry = expiryTime;
 const certIssuerr = certIssuer;
 const publicKey = aggPubKey2;
 //issuing certificate on the ethereum blockchain and transaction inclusion (for proof of existence and cert status)
-const pvtkey = "f66bcf3a0ac7332895bd174a313402cbd03e2a07919bfed0a8bc29e275b9225c";
+const pvtkey = "b023f5ebf3a1c7e13db3987d3548819b57349505bbc2716693c7420319579fd2";
 web3.eth.accounts.wallet.add(pvtkey);
 const setCertificate = await BlockSSLcontract.methods.issueCertificate(version, currentTime, subjectname, "JJJJ",expiry,certIssuerr,multisigs, certSignature, certStatus).send({
-  'from': "0xA0dFEd341116881aCacf33767cD5C318852A48C3",
+  'from': "0xDEc64BC38E10BB64D97181B82Dd28B5fe350ec24",
   'gas':6721975,
   value: 0
   }, function(error, data){
     if (error){
-      console.log(error);
+      console.log("this is error", error);
     }
-    console.log(data)
+    console.log('this is data', data)
   });
   console.log('certInfo', setCertificate)
   const blockNumber = setCertificate.events.certificateSigned.returnValues.blockNumber;
@@ -218,15 +218,9 @@ generateKeyPair('rsa', {
     res.send(certificate)
   })
   
-<<<<<<< HEAD
 // cert revokation route
   server.get('/revoke-certificate/:serialnumber', async (req,res)=>{
     revokeCertificate(req.params.serialnumber);
-=======
-// cert revocation route
-  server.get('/revoke-certificate/:serialnumber/:blocknumber', async (req,res)=>{
-    revokeCertificate(req.params.serialnumber, req.params.blocknumber);
->>>>>>> aa07b645cd95aee748fb0a328e3110c4075c733e
   })
   
  // blockchain cert info route 
