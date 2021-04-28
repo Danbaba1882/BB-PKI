@@ -29,7 +29,7 @@ const web3 = new Web3(rpcurl_ganache)
 const abi = contract.abi;
 var pbkey;
 var prkey;
-const contractAddress = "0xAF350A8Fa31Ab3d1eDbfD0d9C44c98D55333EAa5"
+const contractAddress = "0x4899DCD4DF76074b5c845274Ceb888fCBD6c537E"
 const BlockSSLcontract = new web3.eth.Contract(abi, contractAddress)
 const bls = require('noble-bls12-381');
 const { version } = require('moment')
@@ -51,8 +51,8 @@ const domainName = domain;
 // domain conversion to hex string
 const domainHex = toHexString(domainName)
 const numCas = nocas;
-if (numCas < 3 || numCas>10){
-  console.log('CAs must be greater than or equals to 3 and CAs must be less than or equals to 10')
+if (numCas < 3 ){
+  console.log('Number of CAs must be greater than or equals to 3.')
 }
 
 else {
@@ -89,7 +89,6 @@ else {
    
   // getting certificate parameters
   console.log(await as, signatures2)
-  log.log(certificate, numCas);
   const currentTime = Date.now();
   _serialNumber = currentTime;
   const expiryTime = parseInt(currentTime) + (365*24*60*60);
@@ -107,10 +106,10 @@ else {
   const certIssuerr = certIssuer;
   const publicKey = aggPubKey2;
   //issuing certificate on the ethereum blockchain and transaction inclusion (for proof of existence and cert status)
-  const pvtkey = "b387cd6eac80cdb2c1568814bc2c6179537ced267364acf122c66157317e0661";
+  const pvtkey = "f5ce099a026f353198d82556645b54f5ec0f7ada0a950a5dd6a5deda5435680b";
   web3.eth.accounts.wallet.add(pvtkey);
   const setCertificate = await BlockSSLcontract.methods.issueCertificate(version, currentTime, subjectname, "JJJJ",expiry,certIssuerr,multisigs, certSignature, certStatus).send({
-    'from': "0x9450A01B6C716DE3182F5D21dCf5c1c71E8A9bFb",
+    'from': "0x84d1cFA6256EDCF1e354f36b1D18ED4ad3a41403",
     'gas':6721975,
     value: 0
     }, function(error, data){
@@ -135,6 +134,7 @@ else {
     certificate.txHash = setCertificate.transactionHash;
     certificate.blockHash = setCertificate.blockHash
     certArray.push(certificate);
+    log.log(certificate, numCas);
 }
 
   
@@ -150,26 +150,30 @@ function toHexString(byteArray) {
 
 // revoke certificate
 async function revokeCertificate(_serialNumber){
-  const pvtkey = "b387cd6eac80cdb2c1568814bc2c6179537ced267364acf122c66157317e0661"
+  const pvtkey = "f5ce099a026f353198d82556645b54f5ec0f7ada0a950a5dd6a5deda5435680b"
   web3.eth.accounts.wallet.add(pvtkey);
   const revokeCert = await BlockSSLcontract.methods.revokeCertificate(_serialNumber).send({
-    'from': "0x9450A01B6C716DE3182F5D21dCf5c1c71E8A9bFb",
+    'from': "0x84d1cFA6256EDCF1e354f36b1D18ED4ad3a41403",
     'gas':6721975,
     value: 0
     }, function(error, data){
       if (error){
         console.log(error);
       }
-      console.log(data)
-      certificate.certStatus = false;
-      console.log(certificate)
+      else {
+        console.log('certificate has been revoked')
+        console.log(data)
+        certificate.certStatus = false;
+        console.log(certificate)
+      }
+      
     });
-  console.log('certStatus', revokeCert)
+  console.log('cert revocation transaction', revokeCert)
   // setting certificate object
 }
 
 //get certificate
-async function  getCertificate(_serialNumber) {
+async function  certificateUpdate(_serialNumber) {
   const certificatee = await BlockSSLcontract.methods.certificates(_serialNumber).call()
   console.log(certificatee)
 }
@@ -177,11 +181,27 @@ async function  getCertificate(_serialNumber) {
 // client verify certificate using the eth-proof
 async function clientVerifyCert(_serialNumber) {
 const certificate = await BlockSSLcontract.methods.certificates(_serialNumber).call( async (err, result)=>{
-console.log('certificate ',result)
+  if (result.serialNumber == 0){
+    console.log('No certificate is corresponding to the serial number', _serialNumber)
+  }
+
+  else {
+    console.log('certificate ',result)
+  }
+
 const blockNumber = result.blockNumber;
 const transaction = await web3.eth.getBlock(blockNumber);
-console.log('Block Header ',transaction)
-console.log(transaction.transactions[0])
+if (transaction.number !=0){
+  console.log('Block Header ',transaction)
+}
+
+if (transaction.transactions[0] == undefined){
+  console.log('Transaction hash not found on the blockchain')
+}
+else {
+  console.log('transaction hash ', transaction.transactions[0])
+}
+
 if (transaction != null && transaction !=undefined) {
 const getnverify = new GetAndVerify(rpcurl_ganache);
 const proof = await getnverify.receiptAgainstHash(transaction.hash, transaction.transactions[0], blockNumber);
@@ -222,7 +242,7 @@ generateKeyPair('rsa', {
 
  // home route
  server.get('/', (req, res)=>{
-  res.send({message: "Welcome Dr Abba Garba, use the url bbpki.herokuapp.com/signCertificate/<domainName> to sign the sertificate using the bls multisignature system, the signatures are responded back in a json format in your browser interface"})
+  res.send({message: "Welcome Dr Abba Garba, use the url localhost:3000/signCertificate/:<domainName> to sign the sertificate using the bls multisignature system, the signatures are responded back in a json format in your browser interface"})
   })
   
   // certificate issuance and signing route
@@ -234,17 +254,20 @@ generateKeyPair('rsa', {
 // cert revokation route
   server.get('/revoke-certificate/:serialnumber', async (req,res)=>{
     revokeCertificate(req.params.serialnumber);
-    res.send(certificate)
+    res.send("check the command prompt to see the certificate revocation status")
   })
   
  // blockchain cert info route 
-  server.get('/get-certificate/:serialnumber', async (req,res)=>{
-    getCertificate(req.params.serialnumber);
+  server.get('/certificate-update/:serialnumber', async (req,res)=>{
+    certificateUpdate(req.params.serialnumber);
+    res.send('check your command prompt to see the certificate update')
   })
   
   // client verify cert using eth-proof route
   server.get('/client-verify-cert/:serialNumber', async (req,res)=>{
     clientVerifyCert(req.params.serialNumber);
+    res.send('check your command prompt to see the certificate verification status')
+
   })
   
 // starting developement/production server
