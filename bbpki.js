@@ -51,85 +51,92 @@ const domainName = domain;
 // domain conversion to hex string
 const domainHex = toHexString(domainName)
 const numCas = nocas;
-const privateKeys = [];
+if (numCas < 3 || numCas>10){
+  console.log('CAs must be greater than or equals to 3 and CAs must be less than or equals to 10')
+}
 
-// getting and setting the private keys of all selected cas
-  for (var i=0; i< numCas; i++){
-      const ca = casArray[i];
-      const caPrivateKey = ca.privateKey;
-      privateKeys.push(caPrivateKey);
-    }
-const message = domainHex;
+else {
+  const privateKeys = [];
 
-// function that handles the bls signature process
-var as = (async () => {
-  const publicKey = bls.getPublicKey(privateKey);
-  const publicKeys = privateKeys.map(bls.getPublicKey);
-  const signature = await bls.sign(message, privateKey);
-  const isCorrect = await bls.verify(signature, message, publicKey);
+  // getting and setting the private keys of all selected cas
+    for (var i=0; i< numCas; i++){
+        const ca = casArray[i];
+        const caPrivateKey = ca.privateKey;
+        privateKeys.push(caPrivateKey);
+      }
+  const message = domainHex;
+  
+  // function that handles the bls signature process
+  var as = (async () => {
+    const publicKey = bls.getPublicKey(privateKey);
+    const publicKeys = privateKeys.map(bls.getPublicKey);
+    const signature = await bls.sign(message, privateKey);
+    const isCorrect = await bls.verify(signature, message, publicKey);
+  
+    // Sign certifictae with private keys of CA's
+    signatures2 = await Promise.all(privateKeys.map(p => bls.sign(message, p)));
+    aggPubKey2 = bls.aggregatePublicKeys(publicKeys);
+    aggSignature2 = bls.aggregateSignatures(signatures2);
+    isCorrect2 = await bls.verify(aggSignature2, message, aggPubKey2);
+   
+    console.log('multi/ partial signatures of selected CAs:', signatures2);
+    console.log('merged/combined signature:', aggSignature2);
+    console.log('signature verified ?:', isCorrect2);
+  
+  
+  return [signatures2, aggPubKey2, aggSignature2, isCorrect2];
+  })();
+   
+  // getting certificate parameters
+  console.log(await as, signatures2)
+  log.log(certificate, numCas);
+  const currentTime = Date.now();
+  _serialNumber = currentTime;
+  const expiryTime = parseInt(currentTime) + (365*24*60*60);
+  const extString=  moment(expiryTime).format('MM/DD/YYYY');
+  const issuer = parseInt(Math.random() * (numCas - 0) + 1);
+  const certIssuer = casArray[issuer].caName;
+  
+  // setting certificate parameters
+  const version = "X.509V3";
+  const certStatus = true;
+  const subjectname = domainName;
+  const multisigs = signatures2;
+  const certSignature = aggSignature2;
+  const expiry = expiryTime;
+  const certIssuerr = certIssuer;
+  const publicKey = aggPubKey2;
+  //issuing certificate on the ethereum blockchain and transaction inclusion (for proof of existence and cert status)
+  const pvtkey = "b023f5ebf3a1c7e13db3987d3548819b57349505bbc2716693c7420319579fd2";
+  web3.eth.accounts.wallet.add(pvtkey);
+  const setCertificate = await BlockSSLcontract.methods.issueCertificate(version, currentTime, subjectname, "JJJJ",expiry,certIssuerr,multisigs, certSignature, certStatus).send({
+    'from': "0xDEc64BC38E10BB64D97181B82Dd28B5fe350ec24",
+    'gas':6721975,
+    value: 0
+    }, function(error, data){
+      if (error){
+        console.log("this is error", error);
+      }
+      console.log('this is data', data)
+    });
+    console.log('certInfo', setCertificate)
+    const blockNumber = setCertificate.events.certificateSigned.returnValues.blockNumber;
+    certificate.version = version
+    certificate.SerialNumber = _serialNumber
+    certificate.SubjectName = subjectname
+    certificate.SubjectPublicKey = publicKey
+    certificate.Validity = expiry
+    certificate.certIssuer = certIssuer
+    certificate.MultiSignatures = signatures2
+    certificate.certificateSignature = aggSignature2
+    certificate.sigVerify = isCorrect2
+    certificate.certStatus = certStatus
+    certificate.certBlockNUm = blockNumber
+    certificate.txHash = setCertificate.transactionHash;
+    certificate.blockHash = setCertificate.blockHash
+    certArray.push(certificate);
+}
 
-  // Sign certifictae with private keys of CA's
-  signatures2 = await Promise.all(privateKeys.map(p => bls.sign(message, p)));
-  aggPubKey2 = bls.aggregatePublicKeys(publicKeys);
-  aggSignature2 = bls.aggregateSignatures(signatures2);
-  isCorrect2 = await bls.verify(aggSignature2, message, aggPubKey2);
- 
-  console.log('multi/ partial signatures of selected CAs:', signatures2);
-  console.log('merged/combined signature:', aggSignature2);
-  console.log('signature verified ?:', isCorrect2);
-
-
-return [signatures2, aggPubKey2, aggSignature2, isCorrect2];
-})();
- 
-// getting certificate parameters
-console.log(await as, signatures2)
-log.log(certificate, numCas);
-const currentTime = Date.now();
-_serialNumber = currentTime;
-const expiryTime = parseInt(currentTime) + (365*24*60*60);
-const extString=  moment(expiryTime).format('MM/DD/YYYY');
-const issuer = parseInt(Math.random() * (numCas - 0) + 1);
-const certIssuer = casArray[issuer].caName;
-
-// setting certificate parameters
-const version = "X.509V3";
-const certStatus = true;
-const subjectname = domainName;
-const multisigs = signatures2;
-const certSignature = aggSignature2;
-const expiry = expiryTime;
-const certIssuerr = certIssuer;
-const publicKey = aggPubKey2;
-//issuing certificate on the ethereum blockchain and transaction inclusion (for proof of existence and cert status)
-const pvtkey = "b023f5ebf3a1c7e13db3987d3548819b57349505bbc2716693c7420319579fd2";
-web3.eth.accounts.wallet.add(pvtkey);
-const setCertificate = await BlockSSLcontract.methods.issueCertificate(version, currentTime, subjectname, "JJJJ",expiry,certIssuerr,multisigs, certSignature, certStatus).send({
-  'from': "0xDEc64BC38E10BB64D97181B82Dd28B5fe350ec24",
-  'gas':6721975,
-  value: 0
-  }, function(error, data){
-    if (error){
-      console.log("this is error", error);
-    }
-    console.log('this is data', data)
-  });
-  console.log('certInfo', setCertificate)
-  const blockNumber = setCertificate.events.certificateSigned.returnValues.blockNumber;
-  certificate.version = version
-  certificate.SerialNumber = _serialNumber
-  certificate.SubjectName = subjectname
-  certificate.SubjectPublicKey = publicKey
-  certificate.Validity = expiry
-  certificate.certIssuer = certIssuer
-  certificate.MultiSignatures = signatures2
-  certificate.certificateSignature = aggSignature2
-  certificate.sigVerify = isCorrect2
-  certificate.certStatus = certStatus
-  certificate.certBlockNUm = blockNumber
-  certificate.txHash = setCertificate.transactionHash;
-  certificate.blockHash = setCertificate.blockHash
-  certArray.push(certificate);
   
   
 }
