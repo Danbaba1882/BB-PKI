@@ -16,6 +16,15 @@ In order to deploy the BB-PKI, to add and revoke the certificate in the blockcha
 
 ### Installing
 
-A step by step series of examples that tell you how to get a development of the system running
+A step by step series of examples that tell you how to deploy the BB-PKI and run succesifully by performing all the functionalities. 
 
+Also this the nodejs codes is used to generate state Merkle proof for TLS certificates and verify it. We apply zmitton/eth-proof as the underlying library.
+
+ #### Singing the certificate 
+ 
+ #### Revoking the certificate 
+ 
+#### getting/Updating the certificate the certificate 
+
+#### Client verify Certificate
  
