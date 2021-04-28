@@ -177,12 +177,15 @@ async function  getCertificate(_serialNumber) {
 // client verify certificate using the eth-proof
 async function clientVerifyCert(_serialNumber) {
 const certificate = await BlockSSLcontract.methods.certificates(_serialNumber).call( async (err, result)=>{
-console.log(result)
+console.log('certificate ',result)
 const blockNumber = result.blockNumber;
 const transaction = await web3.eth.getBlock(blockNumber);
-if (transaction) {
-const getnverify = new GetAndVerify(RPC_URL);
-const proof = getnverify.txAgainstBlockHash(txHash, trustedBlockHash);
+console.log('Block Header ',transaction)
+console.log(transaction.transactions[0])
+if (transaction != null && transaction !=undefined) {
+const getnverify = new GetAndVerify(rpcurl_ganache);
+const proof = await getnverify.receiptAgainstHash(transaction.hash, transaction.transactions[0], blockNumber);
+console.log('proof is ', proof)
 return true;
 }
 else {
@@ -241,7 +244,7 @@ generateKeyPair('rsa', {
   
   // client verify cert using eth-proof route
   server.get('/client-verify-cert/:serialNumber', async (req,res)=>{
-    clientVerifyCert(req.params.serialnumber);
+    clientVerifyCert(req.params.serialNumber);
   })
   
 // starting developement/production server
