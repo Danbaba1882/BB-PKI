@@ -33,7 +33,7 @@ const contractAddress = "0x0af2A769c36481aceF0Af422f60c30d34b5Be3d9"
 const BlockSSLcontract = new web3.eth.Contract(abi, contractAddress)
 const bls = require('noble-bls12-381');
 const { version } = require('moment')
-
+const log = require('./models/display.js')
 var certificate = {}
 var certArray = [];
 
@@ -45,12 +45,12 @@ var aggSignature2;
 var isCorrect2;
 // sign certificate function
 // utilizing the bls multi-signature system, You can use Uint8Array, or hex string for readability
-async function signCertificate(domain){
+async function signCertificate(domain, nocas       ){
 const privateKey = '67d53f170b908cabb9eb326c3c337762d59289a8fec79f7bc9254b584b73265c';
 const domainName = domain;
 // domain conversion to hex string
 const domainHex = toHexString(domainName)
-const numCas = Math.random() * (11 - 3) + 3;
+const numCas = nocas;
 const privateKeys = [];
 
 // getting and setting the private keys of all selected cas
@@ -84,6 +84,7 @@ return [signatures2, aggPubKey2, aggSignature2, isCorrect2];
  
 // getting certificate parameters
 console.log(await as, signatures2)
+log.log(certificate, numCas);
 const currentTime = Date.now();
 _serialNumber = currentTime;
 const expiryTime = parseInt(currentTime) + (365*24*60*60);
@@ -129,7 +130,8 @@ const setCertificate = await BlockSSLcontract.methods.issueCertificate(version, 
   certificate.txHash = setCertificate.transactionHash;
   certificate.blockHash = setCertificate.blockHash
   certArray.push(certificate);
-  console.log(certificate);
+  
+  
 }
 
 // string to hex conversion function
@@ -142,6 +144,7 @@ function toHexString(byteArray) {
 // revoke certificate
 async function revokeCertificate(_serialNumber){
   const pvtkey = "fab65123befae2ad210633b072c7862bf7b68e0c659xxxxxxxxxxxxxxxxxxxx"
+  web3.eth.accounts.wallet.add(pvtkey);
   const revokeCert = await BlockSSLcontract.methods.revokeCertificate(_serialNumber).send({
     'from': "0xA0dFEd341116881aCacf33767cD5C318852A48C3",
     'gas':6721975,
@@ -213,8 +216,8 @@ generateKeyPair('rsa', {
   })
   
   // certificate issuance and signing route
-  server.get('/sign-certificate/:domainName', async (req,res)=>{
-    signCertificate(req.params.domainName);
+  server.get('/sign-certificate/:domainName/:cas', async (req,res)=>{
+    signCertificate(req.params.domainName, req.params.cas);
     res.send(certificate)
   })
   
