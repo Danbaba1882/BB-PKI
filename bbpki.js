@@ -29,7 +29,7 @@ const web3 = new Web3(rpcurl_ganache)
 const abi = contract.abi;
 var pbkey;
 var prkey;
-const contractAddress = "0x0af2A769c36481aceF0Af422f60c30d34b5Be3d9"
+const contractAddress = "0xAF350A8Fa31Ab3d1eDbfD0d9C44c98D55333EAa5"
 const BlockSSLcontract = new web3.eth.Contract(abi, contractAddress)
 const bls = require('noble-bls12-381');
 const { version } = require('moment')
@@ -107,10 +107,10 @@ else {
   const certIssuerr = certIssuer;
   const publicKey = aggPubKey2;
   //issuing certificate on the ethereum blockchain and transaction inclusion (for proof of existence and cert status)
-  const pvtkey = "b023f5ebf3a1c7e13db3987d3548819b57349505bbc2716693c7420319579fd2";
+  const pvtkey = "b387cd6eac80cdb2c1568814bc2c6179537ced267364acf122c66157317e0661";
   web3.eth.accounts.wallet.add(pvtkey);
   const setCertificate = await BlockSSLcontract.methods.issueCertificate(version, currentTime, subjectname, "JJJJ",expiry,certIssuerr,multisigs, certSignature, certStatus).send({
-    'from': "0xDEc64BC38E10BB64D97181B82Dd28B5fe350ec24",
+    'from': "0x9450A01B6C716DE3182F5D21dCf5c1c71E8A9bFb",
     'gas':6721975,
     value: 0
     }, function(error, data){
@@ -150,10 +150,10 @@ function toHexString(byteArray) {
 
 // revoke certificate
 async function revokeCertificate(_serialNumber){
-  const pvtkey = "fab65123befae2ad210633b072c7862bf7b68e0c659xxxxxxxxxxxxxxxxxxxx"
+  const pvtkey = "b387cd6eac80cdb2c1568814bc2c6179537ced267364acf122c66157317e0661"
   web3.eth.accounts.wallet.add(pvtkey);
   const revokeCert = await BlockSSLcontract.methods.revokeCertificate(_serialNumber).send({
-    'from': "0xA0dFEd341116881aCacf33767cD5C318852A48C3",
+    'from': "0x9450A01B6C716DE3182F5D21dCf5c1c71E8A9bFb",
     'gas':6721975,
     value: 0
     }, function(error, data){
@@ -161,17 +161,17 @@ async function revokeCertificate(_serialNumber){
         console.log(error);
       }
       console.log(data)
+      certificate.certStatus = false;
+      console.log(certificate)
     });
   console.log('certStatus', revokeCert)
   // setting certificate object
-
-  
 }
 
 //get certificate
 async function  getCertificate(_serialNumber) {
-  const certificate = await BlockSSLcontract.methods.certificates(_serialNumber).call()
-  console.log(certificate)
+  const certificatee = await BlockSSLcontract.methods.certificates(_serialNumber).call()
+  console.log(certificatee)
 }
 
 // client verify certificate using the eth-proof
@@ -231,6 +231,7 @@ generateKeyPair('rsa', {
 // cert revokation route
   server.get('/revoke-certificate/:serialnumber', async (req,res)=>{
     revokeCertificate(req.params.serialnumber);
+    res.send(certificate)
   })
   
  // blockchain cert info route 
