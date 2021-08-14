@@ -20,6 +20,14 @@ A step by step series of examples that tell you how to deploy the BB-PKI and run
 
 Also this the nodejs codes is used to generate state Merkle proof for TLS certificates and verify it. We apply zmitton/eth-proof as the underlying library.
 
+## STEPS AND PROCEDURES INVOLVED IN THE WHOLE PROCESS
+A domain owner creates a certificate signing request (CIR) generating a public- private key pair using the JavaScript crypto module through a number of trusted RAs (RAs≥ 3 and RAs ≤ 10) , after an automatic verification and vouching of a domain owner CIR by the RAs, Using an out of bound secure communication channel the certificate gets signed by a number of CAs (CAs≥ 3 and CAs ≤ 10) utilizing the concept of BLS-Multisignature system. After a verification of a CIR request by RAs a function named signCertificate from the file bbpki.js gets called via a get request API, on successful request, the certificate gets singed by using a JavaScript bls multisignature library node-bls12-81.
+
+After a certificate has been signed, it is then forwarded into our deployed Ethereum smart contract with the following certificate parameters version, subject name, serial number, multisignatures, certificate signature, certificate public key, signature verified, certificate status, issuer, expiry via web3.js. A function issueCertificate on our smart contracts accepts the certificate parameters and saves a copy of the certificate in a mapping certificates. A transaction is being created on the process, upon a successful execution of the transaction, the following occurs sequentially;
+ The certificates get included into the Ethereum blockchain returning a transaction receipt.
+
+
+
  #### Singing the certificate 
  
  #### Revoking the certificate 
